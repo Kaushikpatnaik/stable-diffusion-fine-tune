@@ -1,5 +1,25 @@
 # Experiments with Stable Diffusion
 
+Added CustomFolderData under ldm/data/simple.py
+Added ad_dataset_finetuning under configs/stable-diffusion
+
+To train on a single A100:
+Signup for stable diffusion v1.4 from huggingface here https://huggingface.co/CompVis/stable-diffusion-v-1-4-original
+
+Using huggingface cli download model to local cache and obtain checkpoint
+```
+from huggingface_hub import hf_hub_download
+ckpt_path = hf_hub_download(repo_id="CompVis/stable-diffusion-v-1-4-original", filename="sd-v1-4-full
+```
+
+Run using the following command
+```
+python main.py     -t     --base configs/stable-diffusion/ad_dataset_finetune.yaml     --gpus '0,'     --scale_lr False     --num_nodes 1     --check_val_every_n_epoch 10     --finetune_from /home/ubuntu/.cache/huggingface/hub/models--CompVis--stable-diffusion-v-1-4-original/snapshots/0834a76f88354683d3f7ef271cadd28f4757a8cc/sd-v1-4-full-ema.ckpt     data.params.batch_size=2     lightning.trainer.accumulate_grad_batches=1     data.params.validation.params.n_gpus=1
+```
+
+
+--------------------------------------
+
 This repository extends and adds to the [original training repo](https://github.com/pesser/stable-diffusion) for Stable Diffusion.
 
 Currently it adds:

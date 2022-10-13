@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -8,6 +9,8 @@ from torchvision import transforms
 from einops import rearrange
 from ldm.util import instantiate_from_config
 from datasets import load_dataset
+import pandas as pd
+
 
 class FolderData(Dataset):
     def __init__(self, root_dir, caption_file, image_transforms, ext="jpg") -> None:
@@ -40,6 +43,41 @@ class FolderData(Dataset):
     def process_im(self, im):
         im = im.convert("RGB")
         return self.tform(im)
+
+
+class CustomFolderData(Dataset):
+    def __init__(self, root_dir, caption_file, image_transforms, ext="jpg") -> None:
+        self.root_dir = Path(root_dir)
+
+        self.csv_file = pd.read_csv(caption_file, index_col=None)
+        self.csv_file.columns=['image_filename', 'caption', 'ocr_text']
+        self.csv_file = self.csv_file[self.csv_file['image_filename'].str.endswith('jpg')]
+
+        self.captions = self.csv_file.iloc[:, 1].values.tolist()
+        self.img_names = self.csv_file.iloc[:, 0].values.tolist()
+
+        image_transforms = [instantiate_from_config(tt) for tt in image_transforms]
+        image_transforms.extend([transforms.ToTensor(),
+                                 transforms.Lambda(lambda x: rearrange(x * 2. - 1., 'c h w -> h w c'))])
+        image_transforms = transforms.Compose(image_transforms)
+        self.tform = image_transforms
+
+        # assert all(['full/' + str(x.name) in self.captions for x in self.paths])
+
+    def __len__(self):
+        return len(self.captions)
+
+    def __getitem__(self, index):
+        caption = self.captions[index]
+        chosen_img_name = self.img_names[index]
+        im = Image.open(os.path.join(self.root_dir, chosen_img_name))
+        im = self.process_im(im)
+        return {"jpg": im, "txt": caption}
+
+    def process_im(self, im):
+        im = im.convert("RGB")
+        return self.tform(im)
+
 
 def hf_dataset(
     name,
