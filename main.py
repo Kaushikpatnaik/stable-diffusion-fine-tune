@@ -4,6 +4,7 @@ import time
 import torch
 import torchvision
 import pytorch_lightning as pl
+import wandb
 
 from packaging import version
 from omegaconf import OmegaConf
@@ -314,7 +315,7 @@ class ImageLogger(Callback):
         self.batch_freq = batch_frequency
         self.max_images = max_images
         self.logger_log_images = {
-            pl.loggers.TestTubeLogger: self._testtube,
+            pl.loggers.WandbLogger: self._wandb_log_image,
         }
         self.log_steps = [2 ** n for n in range(int(np.log2(self.batch_freq)) + 1)]
         if not increase_log_steps:
@@ -336,6 +337,13 @@ class ImageLogger(Callback):
             pl_module.logger.experiment.add_image(
                 tag, grid,
                 global_step=pl_module.global_step)
+
+    @rank_zero_only
+    def _wandb_log_image(self, pl_module, images, batch_idx, split):
+        grid = torchvision.utils.make_grid(images)
+        tag = f"{split}_{pl_module.global_step}"
+
+        wandb.log({tag: wandb.Image(grid)})
 
     @rank_zero_only
     def log_local(self, save_dir, split, images,
@@ -449,7 +457,7 @@ class SingleImageLogger(Callback):
         self.batch_freq = batch_frequency
         self.max_images = max_images
         self.logger_log_images = {
-            pl.loggers.TestTubeLogger: self._testtube,
+            pl.loggers.WandbLogger: self._wandb_log_image,
         }
         self.log_steps = [2 ** n for n in range(int(np.log2(self.batch_freq)) + 1)]
         if not increase_log_steps:
@@ -471,6 +479,13 @@ class SingleImageLogger(Callback):
             pl_module.logger.experiment.add_image(
                 tag, grid,
                 global_step=pl_module.global_step)
+
+    @rank_zero_only
+    def _wandb_log_image(self, pl_module, images, batch_idx, split):
+        grid = torchvision.utils.make_grid(images)
+        tag = f"{split}_{pl_module.global_step}"
+
+        wandb.log({tag: wandb.Image(grid)})
 
     @rank_zero_only
     def log_local(self, save_dir, split, images,
@@ -695,7 +710,7 @@ if __name__ == "__main__":
                 }
             },
         }
-        default_logger_cfg = default_logger_cfgs["testtube"]
+        default_logger_cfg = default_logger_cfgs["wandb"]
         if "logger" in lightning_config:
             logger_cfg = lightning_config.logger
         else:
@@ -879,6 +894,8 @@ if __name__ == "__main__":
                 raise
         if not opt.no_test and not trainer.interrupted:
             trainer.test(model, data)
+
+        
     except RuntimeError as err:
         if MULTINODE_HACKS:
             import requests
