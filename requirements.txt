@@ -1,3 +1,7 @@
+--extra-index-url https://download.pytorch.org/whl/cu113
+torch==1.12.1
+torchvision==0.13.1
+torchvision
 albumentations==0.4.3
 opencv-python==4.5.5.64
 pudb==2019.2
@@ -9,7 +13,7 @@ test-tube>=0.7.5
 streamlit>=0.73.1
 einops==0.3.0
 torch-fidelity==0.3.0
-transformers
+transformers==4.22.2
 kornia==0.6
 webdataset==0.2.5
 torchmetrics==0.6.0
