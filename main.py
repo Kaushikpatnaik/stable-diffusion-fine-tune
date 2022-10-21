@@ -340,10 +340,12 @@ class ImageLogger(Callback):
 
     @rank_zero_only
     def _wandb_log_image(self, pl_module, images, batch_idx, split):
-        grid = torchvision.utils.make_grid(images)
-        tag = f"{split}_{pl_module.global_step}"
+        for k in images:
+            grid = torchvision.utils.make_grid(images[k])
+            grid = (grid + 1.0) / 2.0
+            tag = f"{split}_{pl_module.global_step}_{k}"
 
-        wandb.log({tag: wandb.Image(grid)})
+            wandb.log({tag: wandb.Image(images[k])})
 
     @rank_zero_only
     def log_local(self, save_dir, split, images,
@@ -485,7 +487,7 @@ class SingleImageLogger(Callback):
         grid = torchvision.utils.make_grid(images)
         tag = f"{split}_{pl_module.global_step}"
 
-        wandb.log({tag: wandb.Image(grid)})
+        wandb.log({tag: wandb.Image(images)})
 
     @rank_zero_only
     def log_local(self, save_dir, split, images,
